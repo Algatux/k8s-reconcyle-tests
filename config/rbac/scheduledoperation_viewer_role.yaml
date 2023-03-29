@@ -1,0 +1,27 @@
+# permissions for end users to view scheduledoperations.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: scheduledoperation-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: k8s-reconcyle-tests
+    app.kubernetes.io/part-of: k8s-reconcyle-tests
+    app.kubernetes.io/managed-by: kustomize
+  name: scheduledoperation-viewer-role
+rules:
+- apiGroups:
+  - operations.algatux.dev
+  resources:
+  - scheduledoperations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - operations.algatux.dev
+  resources:
+  - scheduledoperations/status
+  verbs:
+  - get

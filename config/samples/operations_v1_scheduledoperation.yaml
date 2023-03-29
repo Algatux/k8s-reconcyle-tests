@@ -1,0 +1,13 @@
+apiVersion: operations.algatux.dev/v1
+kind: ScheduledOperation
+metadata:
+  labels:
+    app.kubernetes.io/name: scheduledoperation
+    app.kubernetes.io/instance: scheduledoperation-sample
+    app.kubernetes.io/part-of: k8s-reconcyle-tests
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: k8s-reconcyle-tests
+  name: scheduledoperation-sample-1
+spec:
+  schedule: "*/1 * * * *"
+  repeat: 1
