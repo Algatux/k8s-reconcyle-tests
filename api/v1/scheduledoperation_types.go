@@ -29,6 +29,7 @@ const (
 	Init      OperationStatus = "INIT"
 	Scheduled OperationStatus = "SCHEDULED"
 	Running   OperationStatus = "RUNNING"
+	Ready     OperationStatus = "READY"
 	Success   OperationStatus = "SUCCESS"
 	Failure   OperationStatus = "FAILURE"
 )
@@ -37,11 +38,12 @@ const (
 type ScheduledOperationSpec struct {
 	// Status of the operation
 	// +kubebuilder:default=INIT
-	// +kubebuilder:validation:Enum=INIT;SCHEDULED;RUNNING;SUCCESS;FAILURE
+	// +kubebuilder:validation:Enum=INIT;SCHEDULED;READY;RUNNING;SUCCESS;FAILURE
 	// +optional
 	Status OperationStatus `json:"status"`
 	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
 	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:default=""
 	Schedule string `json:"schedule"`
 	// Number of times the operation must be executed on schedule
 	// +kubebuilder:default=1
@@ -52,12 +54,13 @@ type ScheduledOperationSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	Repeated int `json:"repeated"`
+	// +kubebuilder:default=0
+	// +optional
+	NextExecution int64 `json:"nextExecution"`
 }
 
 // ScheduledOperationStatus defines the observed state of ScheduledOperation
-type ScheduledOperationStatus struct {
-	State string `json:"state"`
-}
+type ScheduledOperationStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

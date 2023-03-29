@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
+	"github.com/robfig/cron/v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
 
 	operationsv1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
@@ -33,7 +33,7 @@ import (
 type ScheduledOperationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	logger logr.Logger
+	Logger logr.Logger
 }
 
 //+kubebuilder:rbac:groups=operations.algatux.dev,resources=scheduledoperations,verbs=get;list;watch;create;update;patch;delete
@@ -50,37 +50,109 @@ type ScheduledOperationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *ScheduledOperationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.logger = log.FromContext(ctx)
-
+	var err error
 	var operation operationsv1.ScheduledOperation
-	if err := r.Get(ctx, req.NamespacedName, &operation); err != nil {
-		r.logger.Error(err, "unable to fetch ScheduledOperation")
+	if err = r.Get(ctx, req.NamespacedName, &operation); err != nil {
+		r.Logger.Error(err, "unable to fetch ScheduledOperation")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if operation.Spec.Status == operationsv1.Init {
-		r.logger.Info("OPERATION INITIALIZATION")
-		operation.Spec.Status = operationsv1.Scheduled
+	r.Logger.Info(fmt.Sprintf("Operation Reconcile: %s", operation.Name))
 
+	if operation.Spec.Status == operationsv1.Init {
+		err := r.initOperation(&operation)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, r.Update(ctx, &operation)
+	}
+
+	if operation.Spec.Status == operationsv1.Scheduled {
+		secondsToExecution := operation.Spec.NextExecution - time.Now().Unix()
+		if secondsToExecution > 0 {
+			nextExecution := time.Unix(operation.Spec.NextExecution, 0)
+			r.Logger.Info(fmt.Sprintf("OPERATION IS SCHEDULED, postponing execution to: %v", nextExecution))
+			return ctrl.Result{RequeueAfter: time.Duration(secondsToExecution) * time.Second}, nil
+		}
+
+		r.makeOperationReady(&operation)
 		return ctrl.Result{}, r.updateOperation(ctx, &operation)
 	}
 
-	missingSeconds := operation.CreationTimestamp.Unix() + 60 - time.Now().Unix()
-	if operation.Spec.Status == operationsv1.Scheduled && missingSeconds > 0 {
-		r.logger.Info(fmt.Sprintf("OPERATION IS SCHEDULED, time to execution: %d", missingSeconds))
-
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	if operation.Spec.Status == operationsv1.Ready {
+		operation.Spec.Status = operationsv1.Running
+		err = r.updateOperation(ctx, &operation)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	r.logger.Info("EXECUTING OPERATION ")
+	if operation.Spec.Status == operationsv1.Running {
+		r.Logger.Info("EXECUTING OPERATION ")
+		operation.Spec.Status = operationsv1.Success
+		return ctrl.Result{}, r.updateOperation(ctx, &operation)
+	}
 
-	return ctrl.Result{}, nil
+	if operation.Spec.Status == operationsv1.Success {
+		operation.Spec.Repeated++
+
+		if operation.Spec.Repeat == operation.Spec.Repeated {
+			// reschedule
+		}
+
+	}
+
+	return ctrl.Result{}, err
+}
+
+func (r *ScheduledOperationReconciler) makeOperationReady(operation *operationsv1.ScheduledOperation) {
+	operation.Spec.Status = operationsv1.Ready
+	r.Logger.Info("OPERATION READY")
+}
+
+func (r *ScheduledOperationReconciler) initOperation(operation *operationsv1.ScheduledOperation) error {
+	r.Logger.Info("OPERATION INITIALIZATION")
+	if len(operation.Spec.Schedule) > 0 {
+		return r.initScheduledOperation(operation)
+	}
+
+	r.makeOperationReady(operation)
+
+	return nil
+}
+
+func (r *ScheduledOperationReconciler) initScheduledOperation(operation *operationsv1.ScheduledOperation) error {
+	if operation.Spec.NextExecution != 0 {
+		return nil
+	}
+	operation.Spec.Status = operationsv1.Scheduled
+	r.Logger.Info(fmt.Sprintf("OPERATION SCHEDULE : %v", operation.Spec.Schedule))
+	nextExecution, err := r.getNextExecution(operation)
+	if err != nil {
+		r.Logger.Error(err, "Error parsing operation schedule")
+		return err
+	}
+	r.Logger.Info(fmt.Sprintf("OPERATION IS SCHEDULED, next execution: %v", nextExecution))
+	operation.Spec.NextExecution = nextExecution.Unix()
+
+	return nil
+}
+
+func (r *ScheduledOperationReconciler) getNextExecution(operation *operationsv1.ScheduledOperation) (*time.Time, error) {
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	schedule, err := parser.Parse(operation.Spec.Schedule)
+	if err != nil {
+		return nil, err
+	}
+	nextExecution := schedule.Next(time.Now())
+	return &nextExecution, err
 }
 
 func (r *ScheduledOperationReconciler) updateOperation(ctx context.Context, operation *operationsv1.ScheduledOperation) error {
 	err := r.Update(ctx, operation)
 	if err != nil {
-		r.logger.Error(err, "update failed")
+		r.Logger.Error(err, "update failed")
 		return err
 	}
 
