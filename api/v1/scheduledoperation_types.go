@@ -46,14 +46,15 @@ type ScheduledOperationSpec struct {
 	// +kubebuilder:default=""
 	Schedule string `json:"schedule"`
 	// Number of times the operation must be executed on schedule
-	// +kubebuilder:default=1
-	// +kubebuilder:validation:Minimum=1
-	Repeat int `json:"repeat"`
+	// +kubebuilder:default=-1
+	// +kubebuilder:validation:Minimum=-1
+	// +optional
+	DesiredExecutions int `json:"desiredExecutions"`
 	// Number of times the operation has been executed on schedule
 	// +kubebuilder:default=0
 	// +kubebuilder:validation:Minimum=0
 	// +optional
-	Repeated int `json:"repeated"`
+	Executions int `json:"executions"`
 	// +kubebuilder:default=0
 	// +optional
 	NextExecution int64 `json:"nextExecution"`

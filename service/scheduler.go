@@ -1,0 +1,82 @@
+package service
+
+import (
+	"errors"
+	"fmt"
+	v1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	"github.com/go-logr/logr"
+	"github.com/robfig/cron/v3"
+	"time"
+)
+
+const (
+	AlwaysRepeat = -1
+)
+
+type OperationScheduler struct {
+	logger logr.Logger
+	parser cron.Parser
+}
+
+func NewScheduler(logger logr.Logger) OperationScheduler {
+	return OperationScheduler{
+		logger: logger,
+		parser: cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow),
+	}
+}
+
+func (s *OperationScheduler) IsScheduledOperation(operation *v1.ScheduledOperation) bool {
+	return len(operation.Spec.Schedule) > 0
+}
+
+func (s *OperationScheduler) InitScheduledOperation(operation *v1.ScheduledOperation) error {
+	if operation.Spec.NextExecution != 0 {
+		return errors.New("operation already initialized")
+	}
+	return s.ScheduleOperation(operation)
+}
+
+func (s *OperationScheduler) ScheduleOperation(operation *v1.ScheduledOperation) error {
+	s.logger.Info("SCHEDULING OPERATION")
+	operation.Spec.Status = v1.Scheduled
+	s.logger.Info(fmt.Sprintf("OPERATION SCHEDULE : %v", operation.Spec.Schedule))
+	nextExecution, err := s.getNextExecution(operation)
+	if err != nil {
+		s.logger.Error(err, "Error parsing operation schedule")
+		return err
+	}
+	s.logger.Info(fmt.Sprintf(
+		"OPERATION IS SCHEDULED RUN %d of %d, next execution: %v",
+		operation.Spec.Executions+1,
+		operation.Spec.DesiredExecutions,
+		nextExecution,
+	))
+	operation.Spec.NextExecution = nextExecution.Unix()
+
+	return nil
+}
+
+func (s *OperationScheduler) SecondsToNextExecution(operation *v1.ScheduledOperation) int64 {
+	return operation.Spec.NextExecution - time.Now().Unix()
+}
+
+func (s *OperationScheduler) MustBeExecuted(operation *v1.ScheduledOperation) bool {
+	return s.SecondsToNextExecution(operation) <= 0
+}
+
+func (s *OperationScheduler) MustReschedule(operation *v1.ScheduledOperation) bool {
+	if !s.IsScheduledOperation(operation) {
+		return false
+	}
+
+	return operation.Spec.DesiredExecutions == AlwaysRepeat || operation.Spec.Executions < operation.Spec.DesiredExecutions
+}
+
+func (s *OperationScheduler) getNextExecution(operation *v1.ScheduledOperation) (*time.Time, error) {
+	schedule, err := s.parser.Parse(operation.Spec.Schedule)
+	if err != nil {
+		return nil, err
+	}
+	nextExecution := schedule.Next(time.Now())
+	return &nextExecution, err
+}

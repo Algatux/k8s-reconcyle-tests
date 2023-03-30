@@ -36,19 +36,19 @@ spec:
           spec:
             description: ScheduledOperationSpec defines the desired state of ScheduledOperation
             properties:
-              nextExecution:
-                default: 0
-                format: int64
-                type: integer
-              repeat:
-                default: 1
+              desiredExecutions:
+                default: -1
                 description: Number of times the operation must be executed on schedule
-                minimum: 1
+                minimum: -1
                 type: integer
-              repeated:
+              executions:
                 default: 0
                 description: Number of times the operation has been executed on schedule
                 minimum: 0
+                type: integer
+              nextExecution:
+                default: 0
+                format: int64
                 type: integer
               schedule:
                 default: ""
@@ -67,7 +67,6 @@ spec:
                 - FAILURE
                 type: string
             required:
-            - repeat
             - schedule
             type: object
           status:

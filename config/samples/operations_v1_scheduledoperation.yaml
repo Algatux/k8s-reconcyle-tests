@@ -10,4 +10,3 @@ metadata:
   name: scheduledoperation-sample-1
 spec:
   schedule: "*/5 * * * *"
-  repeat: 1
