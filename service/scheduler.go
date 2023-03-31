@@ -18,8 +18,8 @@ type OperationScheduler struct {
 	parser cron.Parser
 }
 
-func NewScheduler(logger logr.Logger) OperationScheduler {
-	return OperationScheduler{
+func NewScheduler(logger logr.Logger) *OperationScheduler {
+	return &OperationScheduler{
 		logger: logger,
 		parser: cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow),
 	}

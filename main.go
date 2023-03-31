@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"github.com/Algatux/k8s-reconcyle-tests/service"
+	"github.com/Algatux/k8s-reconcyle-tests/service/state"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -91,10 +92,10 @@ func main() {
 	}
 
 	if err = (&controllers.ScheduledOperationReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Logger:    ctrl.Log,
-		Scheduler: service.NewScheduler(ctrl.Log),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Logger:       ctrl.Log,
+		StateFactory: state.NewOperationStateFactory(ctrl.Log, service.NewScheduler(ctrl.Log)),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScheduledOperation")
 		os.Exit(1)

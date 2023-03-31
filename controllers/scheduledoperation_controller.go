@@ -19,22 +19,20 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/Algatux/k8s-reconcyle-tests/service"
+	operationsv1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	"github.com/Algatux/k8s-reconcyle-tests/service/state"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
-
-	operationsv1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
 )
 
 // ScheduledOperationReconciler reconciles a ScheduledOperation object
 type ScheduledOperationReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
-	Logger    logr.Logger
-	Scheduler service.OperationScheduler
+	Scheme       *runtime.Scheme
+	Logger       logr.Logger
+	StateFactory *state.OperationsStateFactory
 }
 
 //+kubebuilder:rbac:groups=operations.algatux.dev,resources=scheduledoperations,verbs=get;list;watch;create;update;patch;delete
@@ -58,80 +56,21 @@ func (r *ScheduledOperationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	r.Logger.Info(fmt.Sprintf("Operation Reconcile: %s", operation.Name))
+	r.Logger.Info(fmt.Sprintf("|| >> Operation Reconcile cycle: %s", operation.Name))
 
-	if operation.Spec.Status == operationsv1.Init {
-		err := r.initOperation(&operation)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, r.Update(ctx, &operation)
-	}
-
-	if operation.Spec.Status == operationsv1.Scheduled {
-		if !r.Scheduler.MustBeExecuted(&operation) {
-			r.Logger.Info(fmt.Sprintf(
-				"OPERATION IS SCHEDULED, postponing execution to: %v",
-				time.Unix(operation.Spec.NextExecution, 0),
-			))
-			return ctrl.Result{
-				RequeueAfter: time.Duration(r.Scheduler.SecondsToNextExecution(&operation)) * time.Second,
-			}, nil
-		}
-
-		r.makeOperationReady(&operation)
-		return ctrl.Result{}, r.updateOperation(ctx, &operation)
-	}
-
-	if operation.Spec.Status == operationsv1.Ready {
-		operation.Spec.Status = operationsv1.Running
-		return ctrl.Result{}, r.updateOperation(ctx, &operation)
-	}
-
-	if operation.Spec.Status == operationsv1.Running {
-		r.Logger.Info("EXECUTING OPERATION ")
-		operation.Spec.Status = operationsv1.Success
-		operation.Spec.Executions++
-	}
-
-	if operation.Spec.Status == operationsv1.Success {
-		r.Logger.Info("OPERATION SUCCESS")
-		if r.Scheduler.MustReschedule(&operation) {
-			err := r.Scheduler.ScheduleOperation(&operation)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	}
-
-	return ctrl.Result{}, r.updateOperation(ctx, &operation)
-}
-
-func (r *ScheduledOperationReconciler) makeOperationReady(operation *operationsv1.ScheduledOperation) {
-	operation.Spec.Status = operationsv1.Ready
-	r.Logger.Info("OPERATION READY")
-}
-
-func (r *ScheduledOperationReconciler) initOperation(operation *operationsv1.ScheduledOperation) error {
-	r.Logger.Info("OPERATION INITIALIZATION")
-	if r.Scheduler.IsScheduledOperation(operation) {
-		return r.Scheduler.InitScheduledOperation(operation)
-	}
-
-	r.makeOperationReady(operation)
-
-	return nil
-}
-
-func (r *ScheduledOperationReconciler) updateOperation(ctx context.Context, operation *operationsv1.ScheduledOperation) error {
-	err := r.Update(ctx, operation)
+	operationState, err := r.StateFactory.GetStateByOperation(&operation)
 	if err != nil {
-		r.Logger.Error(err, "update failed")
-		return err
+		r.Logger.Error(err, "Error occurred during operation state evaluation")
+		return ctrl.Result{}, err
 	}
 
-	return err
+	result, err := operationState.Evolve(&operation, r)
+	if err != nil {
+		r.Logger.Error(err, "Error evolving operation state")
+		return ctrl.Result{}, err
+	}
+
+	return result, r.Update(ctx, &operation)
 }
 
 // SetupWithManager sets up the controller with the Manager.
