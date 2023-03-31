@@ -13,6 +13,10 @@ type OperationsStateFactory struct {
 }
 
 func (osf *OperationsStateFactory) GetStateByOperation(operation *v1.ScheduledOperation) (OperationStatus, error) {
+	if operation.Spec.Status == "" {
+		operation.Spec.Status = v1.Init
+	}
+
 	switch operation.Spec.Status {
 	case v1.Init:
 		return NewOperationInit(osf.logger, osf.scheduler), nil

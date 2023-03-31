@@ -44,6 +44,7 @@ type ScheduledOperationSpec struct {
 	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
 	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:default=""
+	// +optional
 	Schedule string `json:"schedule"`
 	// Number of times the operation must be executed on schedule
 	// +kubebuilder:default=-1
@@ -57,7 +58,7 @@ type ScheduledOperationSpec struct {
 	Executions int `json:"executions"`
 	// +kubebuilder:default=0
 	// +optional
-	NextExecution int64 `json:"nextExecution"`
+	NextExecutionTimestamp int64 `json:"nextExecution"`
 }
 
 // ScheduledOperationStatus defines the observed state of ScheduledOperation

@@ -19,7 +19,7 @@ func (o *OperationScheduled) Evolve(operation *v1.ScheduledOperation, r client.W
 	if !o.scheduler.MustBeExecuted(operation) {
 		o.logger.Info(fmt.Sprintf(
 			"OPERATION IS SCHEDULED, postponing execution to: %v",
-			time.Unix(operation.Spec.NextExecution, 0),
+			time.Unix(operation.Spec.NextExecutionTimestamp, 0),
 		))
 		return ctrl.Result{
 			RequeueAfter: time.Duration(o.scheduler.SecondsToNextExecution(operation)) * time.Second,

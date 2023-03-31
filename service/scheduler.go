@@ -30,7 +30,7 @@ func (s *OperationScheduler) IsScheduledOperation(operation *v1.ScheduledOperati
 }
 
 func (s *OperationScheduler) InitScheduledOperation(operation *v1.ScheduledOperation) error {
-	if operation.Spec.NextExecution != 0 {
+	if operation.Spec.NextExecutionTimestamp != 0 {
 		return errors.New("operation already initialized")
 	}
 	return s.ScheduleOperation(operation)
@@ -51,13 +51,13 @@ func (s *OperationScheduler) ScheduleOperation(operation *v1.ScheduledOperation)
 		operation.Spec.DesiredExecutions,
 		nextExecution,
 	))
-	operation.Spec.NextExecution = nextExecution.Unix()
+	operation.Spec.NextExecutionTimestamp = nextExecution.Unix()
 
 	return nil
 }
 
 func (s *OperationScheduler) SecondsToNextExecution(operation *v1.ScheduledOperation) int64 {
-	return operation.Spec.NextExecution - time.Now().Unix()
+	return operation.Spec.NextExecutionTimestamp - time.Now().Unix()
 }
 
 func (s *OperationScheduler) MustBeExecuted(operation *v1.ScheduledOperation) bool {
