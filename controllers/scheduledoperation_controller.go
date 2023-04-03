@@ -23,6 +23,7 @@ import (
 	"github.com/Algatux/k8s-reconcyle-tests/service/state"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -49,28 +50,30 @@ type ScheduledOperationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *ScheduledOperationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	var operation operationsv1.ScheduledOperation
-	if err = r.Get(ctx, req.NamespacedName, &operation); err != nil {
+	operation, err := r.retrieveOperation(ctx, req.NamespacedName)
+	if err != nil {
 		r.Logger.Error(err, "unable to fetch ScheduledOperation")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	r.Logger.Info(fmt.Sprintf("|| >> Operation Reconcile cycle: %s", operation.Name))
 
-	operationState, err := r.StateFactory.GetStateByOperation(&operation)
+	operation.SetState(r.StateFactory.GetStateByOperation(operation))
 	if err != nil {
 		r.Logger.Error(err, "Error occurred during operation state evaluation")
 		return ctrl.Result{}, err
 	}
 
-	result, err := operationState.Evolve(&operation, r)
+	operationState.SendNotifications(operation, r)
+	operationState.SayHiToFamily(operation, r)
+	operationState.SayGoodbye(operation, r)
+	result, err := operationState.Evolve(operation, r)
 	if err != nil {
 		r.Logger.Error(err, "Error evolving operation state")
 		return ctrl.Result{}, err
 	}
 
-	return result, r.Update(ctx, &operation)
+	return result, r.Update(ctx, operation)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -78,4 +81,15 @@ func (r *ScheduledOperationReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operationsv1.ScheduledOperation{}).
 		Complete(r)
+}
+
+func (r *ScheduledOperationReconciler) retrieveOperation(ctx context.Context, namespace types.NamespacedName) (*operationsv1.ScheduledOperation, error) {
+	var operation operationsv1.ScheduledOperation
+
+	if err := r.Get(ctx, namespace, &operation); err != nil {
+		r.Logger.Error(err, "unable to fetch ScheduledOperation")
+		return nil, err
+	}
+
+	return &operation, nil
 }

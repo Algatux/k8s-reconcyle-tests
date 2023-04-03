@@ -76,6 +76,10 @@ type ScheduledOperation struct {
 	Status ScheduledOperationStatus `json:"status,omitempty"`
 }
 
+func (s *ScheduledOperation) SetState(state OperationStatus) {
+	return
+}
+
 //+kubebuilder:object:root=true
 
 // ScheduledOperationList contains a list of ScheduledOperation
