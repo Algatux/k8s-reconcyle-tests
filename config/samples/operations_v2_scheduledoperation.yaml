@@ -1,4 +1,4 @@
-apiVersion: operations.algatux.dev/v1
+apiVersion: operations.algatux.dev/v2
 kind: ScheduledOperation
 metadata:
   labels:
@@ -7,7 +7,6 @@ metadata:
     app.kubernetes.io/part-of: k8s-reconcyle-tests
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: k8s-reconcyle-tests
-  name: scheduledoperation-sample-1
+  name: scheduledoperation-sample
 spec:
-  desiredExecutions: 5
-  schedule: "*/1 * * * *"
+  # TODO(user): Add fields here

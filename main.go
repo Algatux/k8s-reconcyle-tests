@@ -18,9 +18,11 @@ package main
 
 import (
 	"flag"
+	operationsv2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
+	"os"
+
 	"github.com/Algatux/k8s-reconcyle-tests/service"
 	"github.com/Algatux/k8s-reconcyle-tests/service/state"
-	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -47,6 +49,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(operationsv1.AddToScheme(scheme))
+	utilruntime.Must(operationsv2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -98,6 +101,11 @@ func main() {
 		StateFactory: state.NewOperationStateFactory(ctrl.Log, service.NewScheduler(ctrl.Log)),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScheduledOperation")
+		os.Exit(1)
+	}
+
+	if err = (&operationsv1.ScheduledOperation{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ScheduledOperation")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

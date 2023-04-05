@@ -1,7 +1,8 @@
 package state
 
 import (
-	v1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	"context"
+	v2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -11,14 +12,13 @@ type OperationRunning struct {
 	baseOperationState
 }
 
-func (o *OperationRunning) Evolve(operation *v1.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
+func (o *OperationRunning) Evolve(ctx context.Context, operation *v2.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
 	o.logger.Info("EXECUTING OPERATION")
-	operation.Spec.Status = v1.Running
 	// DOING THINGS HERE TO KEEP THE TASK RUNNING
 
 	// THEN CHANGE STATUS TO SUCCESS/FAILURE
-	operation.Spec.Status = v1.Success
-	operation.Spec.Executions++
+	operation.Status.State = v2.Success
+	operation.Status.Executions++
 
 	return ctrl.Result{}, nil
 }

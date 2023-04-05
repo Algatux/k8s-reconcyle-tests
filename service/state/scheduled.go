@@ -1,8 +1,9 @@
 package state
 
 import (
+	"context"
 	"fmt"
-	v1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	v2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
 	"github.com/Algatux/k8s-reconcyle-tests/service"
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -15,11 +16,11 @@ type OperationScheduled struct {
 	scheduler *service.OperationScheduler
 }
 
-func (o *OperationScheduled) Evolve(operation *v1.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
+func (o *OperationScheduled) Evolve(ctx context.Context, operation *v2.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
 	if !o.scheduler.MustBeExecuted(operation) {
 		o.logger.Info(fmt.Sprintf(
 			"OPERATION IS SCHEDULED, postponing execution to: %v",
-			time.Unix(operation.Spec.NextExecutionTimestamp, 0),
+			time.Unix(operation.Status.NextExecutionTimestamp, 0),
 		))
 		return ctrl.Result{
 			RequeueAfter: time.Duration(o.scheduler.SecondsToNextExecution(operation)) * time.Second,
@@ -27,7 +28,7 @@ func (o *OperationScheduled) Evolve(operation *v1.ScheduledOperation, r client.W
 	}
 
 	o.logger.Info("OPERATION REACHED SCHEDULED EXECUTION TIME")
-	operation.Spec.Status = v1.Ready
+	operation.Status.State = v2.Ready
 
 	return ctrl.Result{}, nil
 }

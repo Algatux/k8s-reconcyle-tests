@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
-	v1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	v2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
 	"github.com/go-logr/logr"
 	"github.com/robfig/cron/v3"
 	"time"
@@ -25,20 +25,20 @@ func NewScheduler(logger logr.Logger) *OperationScheduler {
 	}
 }
 
-func (s *OperationScheduler) IsScheduledOperation(operation *v1.ScheduledOperation) bool {
+func (s *OperationScheduler) IsScheduledOperation(operation *v2.ScheduledOperation) bool {
 	return len(operation.Spec.Schedule) > 0
 }
 
-func (s *OperationScheduler) InitScheduledOperation(operation *v1.ScheduledOperation) error {
-	if operation.Spec.NextExecutionTimestamp != 0 {
+func (s *OperationScheduler) InitScheduledOperation(operation *v2.ScheduledOperation) error {
+	if operation.Status.NextExecutionTimestamp != 0 {
 		return errors.New("operation already initialized")
 	}
 	return s.ScheduleOperation(operation)
 }
 
-func (s *OperationScheduler) ScheduleOperation(operation *v1.ScheduledOperation) error {
+func (s *OperationScheduler) ScheduleOperation(operation *v2.ScheduledOperation) error {
 	s.logger.Info("SCHEDULING OPERATION")
-	operation.Spec.Status = v1.Scheduled
+	operation.Status.State = v2.Scheduled
 	s.logger.Info(fmt.Sprintf("OPERATION SCHEDULE : %v", operation.Spec.Schedule))
 	nextExecution, err := s.getNextExecution(operation)
 	if err != nil {
@@ -47,32 +47,32 @@ func (s *OperationScheduler) ScheduleOperation(operation *v1.ScheduledOperation)
 	}
 	s.logger.Info(fmt.Sprintf(
 		"OPERATION IS SCHEDULED RUN %d of %d, next execution: %v",
-		operation.Spec.Executions+1,
+		operation.Status.Executions+1,
 		operation.Spec.DesiredExecutions,
 		nextExecution,
 	))
-	operation.Spec.NextExecutionTimestamp = nextExecution.Unix()
+	operation.Status.NextExecutionTimestamp = nextExecution.Unix()
 
 	return nil
 }
 
-func (s *OperationScheduler) SecondsToNextExecution(operation *v1.ScheduledOperation) int64 {
-	return operation.Spec.NextExecutionTimestamp - time.Now().Unix()
+func (s *OperationScheduler) SecondsToNextExecution(operation *v2.ScheduledOperation) int64 {
+	return operation.Status.NextExecutionTimestamp - time.Now().Unix()
 }
 
-func (s *OperationScheduler) MustBeExecuted(operation *v1.ScheduledOperation) bool {
+func (s *OperationScheduler) MustBeExecuted(operation *v2.ScheduledOperation) bool {
 	return s.SecondsToNextExecution(operation) <= 0
 }
 
-func (s *OperationScheduler) MustReschedule(operation *v1.ScheduledOperation) bool {
+func (s *OperationScheduler) MustReschedule(operation *v2.ScheduledOperation) bool {
 	if !s.IsScheduledOperation(operation) {
 		return false
 	}
 
-	return operation.Spec.DesiredExecutions == AlwaysRepeat || operation.Spec.Executions < operation.Spec.DesiredExecutions
+	return operation.Spec.DesiredExecutions == AlwaysRepeat || operation.Status.Executions < operation.Spec.DesiredExecutions
 }
 
-func (s *OperationScheduler) getNextExecution(operation *v1.ScheduledOperation) (*time.Time, error) {
+func (s *OperationScheduler) getNextExecution(operation *v2.ScheduledOperation) (*time.Time, error) {
 	schedule, err := s.parser.Parse(operation.Spec.Schedule)
 	if err != nil {
 		return nil, err

@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	operationsv1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	operationsv2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -63,6 +64,9 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).NotTo(BeNil())
 
 	err = operationsv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = operationsv2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme

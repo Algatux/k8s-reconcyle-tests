@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	operationsv1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	operationsv2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
 	"github.com/Algatux/k8s-reconcyle-tests/service/state"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,13 +50,14 @@ type ScheduledOperationReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *ScheduledOperationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	var operation operationsv1.ScheduledOperation
+	var operation operationsv2.ScheduledOperation
 	if err = r.Get(ctx, req.NamespacedName, &operation); err != nil {
 		r.Logger.Error(err, "unable to fetch ScheduledOperation")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	r.Logger.Info(fmt.Sprintf("|| >> Operation Reconcile cycle: %s", operation.Name))
+	r.Logger.Info(fmt.Sprintf("Status: %s", operation.Status.State))
 
 	operationState, err := r.StateFactory.GetStateByOperation(&operation)
 	if err != nil {
@@ -64,18 +65,18 @@ func (r *ScheduledOperationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	result, err := operationState.Evolve(&operation, r)
+	result, err := operationState.Evolve(ctx, &operation, r)
 	if err != nil {
 		r.Logger.Error(err, "Error evolving operation state")
 		return ctrl.Result{}, err
 	}
 
-	return result, r.Update(ctx, &operation)
+	return result, r.Status().Update(ctx, &operation)
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ScheduledOperationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operationsv1.ScheduledOperation{}).
+		For(&operationsv2.ScheduledOperation{}).
 		Complete(r)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,9 +46,6 @@ type ScheduledOperationSpec struct {
 	// +kubebuilder:validation:Minimum=-1
 	// +optional
 	DesiredExecutions int `json:"desiredExecutions"`
-	// +kubebuilder:default=true
-	// +optional
-	Test bool `json:"test"`
 }
 
 // ScheduledOperationStatus defines the observed state of ScheduledOperation
@@ -68,10 +65,14 @@ type ScheduledOperationStatus struct {
 	// +kubebuilder:default=0
 	// +optional
 	Sandro int64 `json:"sandro"`
+	// +kubebuilder:default=true
+	// +optional
+	Test bool `json:"test"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // ScheduledOperation is the Schema for the scheduledoperations API
 type ScheduledOperation struct {
@@ -81,6 +82,8 @@ type ScheduledOperation struct {
 	Spec   ScheduledOperationSpec   `json:"spec,omitempty"`
 	Status ScheduledOperationStatus `json:"status,omitempty"`
 }
+
+func (s ScheduledOperation) Hub() {}
 
 //+kubebuilder:object:root=true
 

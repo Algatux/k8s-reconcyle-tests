@@ -29,3 +29,5 @@ rules:
   - scheduledoperations/status
   verbs:
   - get
+  - patch
+  - update

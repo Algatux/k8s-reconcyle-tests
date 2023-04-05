@@ -2,7 +2,7 @@ package state
 
 import (
 	"errors"
-	v1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	v2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
 	"github.com/Algatux/k8s-reconcyle-tests/service"
 	"github.com/go-logr/logr"
 )
@@ -12,23 +12,23 @@ type OperationsStateFactory struct {
 	scheduler *service.OperationScheduler
 }
 
-func (osf *OperationsStateFactory) GetStateByOperation(operation *v1.ScheduledOperation) (OperationStatus, error) {
-	if operation.Spec.Status == "" {
-		operation.Spec.Status = v1.Init
+func (osf *OperationsStateFactory) GetStateByOperation(operation *v2.ScheduledOperation) (OperationStatus, error) {
+	if operation.Status.State == "" {
+		operation.Status.State = v2.Init
 	}
 
-	switch operation.Spec.Status {
-	case v1.Init:
+	switch operation.Status.State {
+	case v2.Init:
 		return NewOperationInit(osf.logger, osf.scheduler), nil
-	case v1.Scheduled:
+	case v2.Scheduled:
 		return NewOperationScheduled(osf.logger, osf.scheduler), nil
-	case v1.Ready:
+	case v2.Ready:
 		return NewOperationReady(osf.logger), nil
-	case v1.Running:
+	case v2.Running:
 		return NewOperationRunning(osf.logger), nil
-	case v1.Success:
+	case v2.Success:
 		return NewOperationSuccess(osf.logger, osf.scheduler), nil
-	case v1.Failure:
+	case v2.Failure:
 		return NewOperationFailure(osf.logger, osf.scheduler), nil
 	}
 

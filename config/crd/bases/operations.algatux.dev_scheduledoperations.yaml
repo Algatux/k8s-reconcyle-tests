@@ -41,23 +41,30 @@ spec:
                 description: Number of times the operation must be executed on schedule
                 minimum: -1
                 type: integer
-              executions:
-                default: 0
-                description: Number of times the operation has been executed on schedule
-                minimum: 0
-                type: integer
-              nextExecution:
-                default: 0
-                format: int64
-                type: integer
               schedule:
                 default: ""
                 description: The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
                 minLength: 0
                 type: string
-              status:
+              test:
+                default: true
+                type: boolean
+            type: object
+          status:
+            description: ScheduledOperationStatus defines the observed state of ScheduledOperation
+            properties:
+              executions:
+                default: 0
+                description: Number of times the operation has been executed on schedule
+                minimum: 0
+                type: integer
+              nextExecutionTimestamp:
+                default: 0
+                format: int64
+                type: integer
+              operation_state:
                 default: INIT
-                description: Status of the operation
+                description: State of the operation
                 enum:
                 - INIT
                 - SCHEDULED
@@ -66,9 +73,78 @@ spec:
                 - SUCCESS
                 - FAILURE
                 type: string
+              sandro:
+                default: 0
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - name: v2
+    schema:
+      openAPIV3Schema:
+        description: ScheduledOperation is the Schema for the scheduledoperations
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ScheduledOperationSpec defines the desired state of ScheduledOperation
+            properties:
+              desiredExecutions:
+                default: -1
+                description: Number of times the operation must be executed on schedule
+                minimum: -1
+                type: integer
+              schedule:
+                default: ""
+                description: The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
+                minLength: 0
+                type: string
             type: object
           status:
             description: ScheduledOperationStatus defines the observed state of ScheduledOperation
+            properties:
+              executions:
+                default: 0
+                description: Number of times the operation has been executed on schedule
+                minimum: 0
+                type: integer
+              nextExecutionTimestamp:
+                default: 0
+                format: int64
+                type: integer
+              operation_state:
+                default: INIT
+                description: State of the operation
+                enum:
+                - INIT
+                - SCHEDULED
+                - READY
+                - RUNNING
+                - SUCCESS
+                - FAILURE
+                type: string
+              sandro:
+                default: 0
+                format: int64
+                type: integer
+              test:
+                default: true
+                type: boolean
             type: object
         type: object
     served: true

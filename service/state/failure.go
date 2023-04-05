@@ -1,7 +1,8 @@
 package state
 
 import (
-	v1 "github.com/Algatux/k8s-reconcyle-tests/api/v1"
+	"context"
+	v2 "github.com/Algatux/k8s-reconcyle-tests/api/v2"
 	"github.com/Algatux/k8s-reconcyle-tests/service"
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -13,7 +14,7 @@ type OperationFailure struct {
 	scheduler *service.OperationScheduler
 }
 
-func (o *OperationFailure) Evolve(operation *v1.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
+func (o *OperationFailure) Evolve(ctx context.Context, operation *v2.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
 	o.logger.Info("OPERATION FAILURE")
 	if o.scheduler.MustReschedule(operation) {
 		return ctrl.Result{}, o.scheduler.ScheduleOperation(operation)

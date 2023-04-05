@@ -17,4 +17,7 @@ resources:
   kind: ScheduledOperation
   path: github.com/Algatux/k8s-reconcyle-tests/api/v1
   version: v1
+  webhooks:
+    conversion: true
+    webhookVersion: v1
 version: "3"
