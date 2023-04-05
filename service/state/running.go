@@ -13,12 +13,11 @@ type OperationRunning struct {
 
 func (o *OperationRunning) Evolve(operation *v1.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
 	o.logger.Info("EXECUTING OPERATION")
-	operation.Spec.Status = v1.Running
 	// DOING THINGS HERE TO KEEP THE TASK RUNNING
 
 	// THEN CHANGE STATUS TO SUCCESS/FAILURE
-	operation.Spec.Status = v1.Success
-	operation.Spec.Executions++
+	operation.Status.State = v1.Success
+	operation.Status.Executions++
 
 	return ctrl.Result{}, nil
 }

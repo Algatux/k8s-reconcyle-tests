@@ -13,7 +13,7 @@ type OperationReady struct {
 
 func (o *OperationReady) Evolve(operation *v1.ScheduledOperation, r client.Writer) (ctrl.Result, error) {
 	o.logger.Info("OPERATION READY")
-	operation.Spec.Status = v1.Running
+	operation.Status.State = v1.Running
 	// DOING THINGS HERE TO START THE TASKS
 
 	return ctrl.Result{}, nil

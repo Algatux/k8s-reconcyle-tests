@@ -70,7 +70,7 @@ func (r *ScheduledOperationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	return result, r.Update(ctx, &operation)
+	return result, r.Status().Update(ctx, &operation)
 }
 
 // SetupWithManager sets up the controller with the Manager.

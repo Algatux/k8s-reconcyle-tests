@@ -30,7 +30,7 @@ func (s *OperationScheduler) IsScheduledOperation(operation *v1.ScheduledOperati
 }
 
 func (s *OperationScheduler) InitScheduledOperation(operation *v1.ScheduledOperation) error {
-	if operation.Spec.NextExecutionTimestamp != 0 {
+	if operation.Status.NextExecutionTimestamp != 0 {
 		return errors.New("operation already initialized")
 	}
 	return s.ScheduleOperation(operation)
@@ -38,7 +38,7 @@ func (s *OperationScheduler) InitScheduledOperation(operation *v1.ScheduledOpera
 
 func (s *OperationScheduler) ScheduleOperation(operation *v1.ScheduledOperation) error {
 	s.logger.Info("SCHEDULING OPERATION")
-	operation.Spec.Status = v1.Scheduled
+	operation.Status.State = v1.Scheduled
 	s.logger.Info(fmt.Sprintf("OPERATION SCHEDULE : %v", operation.Spec.Schedule))
 	nextExecution, err := s.getNextExecution(operation)
 	if err != nil {
@@ -47,17 +47,17 @@ func (s *OperationScheduler) ScheduleOperation(operation *v1.ScheduledOperation)
 	}
 	s.logger.Info(fmt.Sprintf(
 		"OPERATION IS SCHEDULED RUN %d of %d, next execution: %v",
-		operation.Spec.Executions+1,
+		operation.Status.Executions+1,
 		operation.Spec.DesiredExecutions,
 		nextExecution,
 	))
-	operation.Spec.NextExecutionTimestamp = nextExecution.Unix()
+	operation.Status.NextExecutionTimestamp = nextExecution.Unix()
 
 	return nil
 }
 
 func (s *OperationScheduler) SecondsToNextExecution(operation *v1.ScheduledOperation) int64 {
-	return operation.Spec.NextExecutionTimestamp - time.Now().Unix()
+	return operation.Status.NextExecutionTimestamp - time.Now().Unix()
 }
 
 func (s *OperationScheduler) MustBeExecuted(operation *v1.ScheduledOperation) bool {
@@ -69,7 +69,7 @@ func (s *OperationScheduler) MustReschedule(operation *v1.ScheduledOperation) bo
 		return false
 	}
 
-	return operation.Spec.DesiredExecutions == AlwaysRepeat || operation.Spec.Executions < operation.Spec.DesiredExecutions
+	return operation.Spec.DesiredExecutions == AlwaysRepeat || operation.Status.Executions < operation.Spec.DesiredExecutions
 }
 
 func (s *OperationScheduler) getNextExecution(operation *v1.ScheduledOperation) (*time.Time, error) {

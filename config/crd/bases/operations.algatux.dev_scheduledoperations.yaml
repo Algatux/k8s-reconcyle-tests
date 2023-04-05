@@ -41,23 +41,27 @@ spec:
                 description: Number of times the operation must be executed on schedule
                 minimum: -1
                 type: integer
-              executions:
-                default: 0
-                description: Number of times the operation has been executed on schedule
-                minimum: 0
-                type: integer
-              nextExecution:
-                default: 0
-                format: int64
-                type: integer
               schedule:
                 default: ""
                 description: The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
                 minLength: 0
                 type: string
-              status:
+            type: object
+          status:
+            description: ScheduledOperationStatus defines the observed state of ScheduledOperation
+            properties:
+              executions:
+                default: 0
+                description: Number of times the operation has been executed on schedule
+                minimum: 0
+                type: integer
+              nextExecutionTimestamp:
+                default: 0
+                format: int64
+                type: integer
+              state:
                 default: INIT
-                description: Status of the operation
+                description: State of the operation
                 enum:
                 - INIT
                 - SCHEDULED
@@ -66,9 +70,6 @@ spec:
                 - SUCCESS
                 - FAILURE
                 type: string
-            type: object
-          status:
-            description: ScheduledOperationStatus defines the observed state of ScheduledOperation
             type: object
         type: object
     served: true

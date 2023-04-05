@@ -19,7 +19,7 @@ func (o *OperationInit) Evolve(operation *v1.ScheduledOperation, r client.Writer
 		return ctrl.Result{}, o.scheduler.InitScheduledOperation(operation)
 	}
 
-	operation.Spec.Status = v1.Ready
+	operation.Status.State = v1.Ready
 
 	return ctrl.Result{}, nil
 }
